@@ -103,7 +103,7 @@ public class SecurityConfig {
                                                 .permitAll())
                                 .logout(logout -> logout
                                                 .logoutUrl("/logout")
-                                                .logoutSuccessUrl("/") // 退出后回到主页
+                                                .logoutSuccessUrl("/user/login?logout") // 退出后跳转到登录页面
                                                 .invalidateHttpSession(true)
                                                 .deleteCookies("JSESSIONID")
                                                 .permitAll())
@@ -113,7 +113,7 @@ public class SecurityConfig {
                                                 .expiredUrl("/user/login?expired"))
                                 .csrf(csrf -> csrf
                                                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                                                .ignoringRequestMatchers("/h2-console/**"))
+                                                .ignoringRequestMatchers("/h2-console/**", "/logout"))
                                 .headers(headers -> headers
                                                 .frameOptions().sameOrigin());
 
