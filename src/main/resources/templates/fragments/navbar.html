@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <!-- 通用导航栏片段 -->
+    <nav th:fragment="navbar(activeItem)" class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-book-open me-2"></i>墨韵读书
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${activeItem == 'home'} ? 'active'" href="/">
+                            <i class="fas fa-home me-1"></i>首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${activeItem == 'books'} ? 'active'" href="/books">
+                            <i class="fas fa-book me-1"></i>图书
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${activeItem == 'reviews'} ? 'active'" href="/reviews">
+                            <i class="fas fa-star me-1"></i>书评
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${activeItem == 'discussions'} ? 'active'" href="/discussions">
+                            <i class="fas fa-comments me-1"></i>讨论
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${activeItem == 'diary'} ? 'active'" href="/diary">
+                            <i class="fas fa-bookmark me-1"></i>日志
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:classappend="${activeItem == 'circles'} ? 'active'" href="/circles">
+                            <i class="fas fa-users me-1"></i>圈子
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" th:classappend="${activeItem == 'user'} ? 'active'" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i><span sec:authentication="name">用户</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:classappend="${activeItem == 'profile'} ? 'active'" href="/user/profile">
+                                <i class="fas fa-user-circle me-2"></i>个人中心
+                            </a></li>
+                            <li><a class="dropdown-item" th:classappend="${activeItem == 'user-books'} ? 'active'" href="/user/books">
+                                <i class="fas fa-book me-2"></i>我的图书
+                            </a></li>
+                            <li><a class="dropdown-item" th:classappend="${activeItem == 'user-reviews'} ? 'active'" href="/reviews/my">
+                                <i class="fas fa-star me-2"></i>我的书评
+                            </a></li>
+                            <li><a class="dropdown-item" th:classappend="${activeItem == 'user-discussions'} ? 'active'" href="/discussions/my">
+                                <i class="fas fa-comments me-2"></i>我的讨论
+                            </a></li>
+                            <li><a class="dropdown-item" th:classappend="${activeItem == 'user-diary'} ? 'active'" href="/diary">
+                                <i class="fas fa-bookmark me-2"></i>我的日志
+                            </a></li>
+                            <li sec:authorize="hasRole('TEACHER')">
+                                <a class="dropdown-item" th:classappend="${activeItem == 'teacher'} ? 'active'" href="/teacher/dashboard">
+                                    <i class="fas fa-chalkboard-teacher me-2"></i>导师工作台
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('STUDENT')">
+                                <a class="dropdown-item" th:classappend="${activeItem == 'student'} ? 'active'" href="/student/dashboard">
+                                    <i class="fas fa-user-graduate me-2"></i>学生工作台
+                                </a>
+                            </li>
+                            <li sec:authorize="hasRole('ADMIN')">
+                                <a class="dropdown-item" th:classappend="${activeItem == 'admin'} ? 'active'" href="/admin/dashboard">
+                                    <i class="fas fa-tachometer-alt me-2"></i>管理员控制台
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</body>
+</html> 

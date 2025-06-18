@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书'">推荐图书 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div th:replace="~{fragments/navbar :: navbar('teacher')}"></div>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- 页面标题 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="fas fa-star me-2"></i>推荐图书到圈子</h3>
+                    <a href="/teacher/recommendations" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>返回推荐列表
+                    </a>
+                </div>
+
+                <!-- 消息提示 -->
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- 推荐图书表单 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-book me-2"></i>图书推荐信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/teacher/recommendations/create" id="recommendationForm">
+                            <!-- CSRF Token -->
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <!-- 固定推荐类型为群体推荐 -->
+                            <input type="hidden" name="recommendationType" value="GROUP">
+
+                            <!-- 选择图书 -->
+                            <div class="mb-3">
+                                <label for="bookId" class="form-label">
+                                    <i class="fas fa-book me-1"></i>选择图书 <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="hidden" id="bookId" name="bookId" th:value="${selectedBook?.id}" required>
+                                    <input type="text" class="form-control" id="bookSearch" 
+                                           th:value="${selectedBook?.title}" 
+                                           placeholder="点击搜索图书..." readonly>
+                                    <button type="button" class="btn btn-outline-primary" onclick="showBookModal()">
+                                        <i class="fas fa-search"></i> 搜索图书
+                                    </button>
+                                </div>
+                                <div class="form-text">点击"搜索图书"按钮，输入图书名称进行搜索</div>
+                            </div>
+
+                            <!-- 选择圈子 -->
+                            <div class="mb-3">
+                                <label for="circleId" class="form-label">
+                                    <i class="fas fa-users me-1"></i>推荐到圈子 <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="circleId" name="circleId" required>
+                                    <option value="">请选择圈子</option>
+                                    <option th:each="circle : ${circles}" 
+                                            th:value="${circle.id}" 
+                                            th:text="${circle.name + ' (' + circle.memberCount + '人)'}">
+                                        圈子名称
+                                    </option>
+                                </select>
+                                <div class="form-text">选择要推荐图书的圈子</div>
+                            </div>
+
+                            <!-- 推荐等级 -->
+                            <div class="mb-3">
+                                <label for="recommendationLevel" class="form-label">
+                                    <i class="fas fa-star me-1"></i>推荐等级 <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="recommendationLevel" name="recommendationLevel" required>
+                                    <option value="1">★☆☆☆☆ (1星 - 一般推荐)</option>
+                                    <option value="2">★★☆☆☆ (2星 - 较好推荐)</option>
+                                    <option value="3" selected>★★★☆☆ (3星 - 推荐)</option>
+                                    <option value="4">★★★★☆ (4星 - 强烈推荐)</option>
+                                    <option value="5">★★★★★ (5星 - 极力推荐)</option>
+                                </select>
+                            </div>
+
+                            <!-- 推荐理由 -->
+                            <div class="mb-3">
+                                <label for="reason" class="form-label">
+                                    <i class="fas fa-comment me-1"></i>推荐理由 <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="reason" name="reason" rows="5" 
+                                          placeholder="请详细说明推荐这本书的理由，包括内容特色、适合人群、学习价值等..." 
+                                          maxlength="1000" required></textarea>
+                                <div class="form-text">
+                                    <span id="reasonCount">0</span>/1000 字符
+                                </div>
+                            </div>
+
+                            <!-- 已选图书预览 -->
+                            <div id="selectedBookPreview" class="mb-3" th:if="${selectedBook}" style="display: block;">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-book me-2"></i>已选图书
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-md-2" th:if="${selectedBook.coverImageUrl}">
+                                                <img th:src="${selectedBook.coverImageUrl}" 
+                                                     class="img-fluid rounded" 
+                                                     alt="图书封面"
+                                                     style="max-height: 120px;">
+                                            </div>
+                                            <div th:class="${selectedBook.coverImageUrl ? 'col-md-10' : 'col-md-12'}">
+                                                <h6 th:text="${selectedBook.title}">图书标题</h6>
+                                                <p class="text-muted mb-1">
+                                                    <i class="fas fa-user me-1"></i>
+                                                    <span th:text="${selectedBook.author}">作者</span>
+                                                </p>
+                                                <p class="text-muted mb-1" th:if="${selectedBook.publisher}">
+                                                    <i class="fas fa-building me-1"></i>
+                                                    <span th:text="${selectedBook.publisher}">出版社</span>
+                                                </p>
+                                                <p class="text-muted small mb-0" th:if="${selectedBook.description}">
+                                                    <span th:text="${#strings.abbreviate(selectedBook.description, 150)}">图书描述</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-paper-plane me-2"></i>发布推荐
+                                </button>
+                                <button type="reset" class="btn btn-outline-secondary">
+                                    <i class="fas fa-undo me-2"></i>重置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 选择图书模态框 -->
+    <div class="modal fade" id="bookModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-search me-2"></i>搜索图书
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 搜索框 -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="modalBookSearch" 
+                                   placeholder="输入图书名称进行搜索...">
+                            <button type="button" class="btn btn-primary" onclick="searchBooks()">
+                                <i class="fas fa-search"></i> 搜索
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜索结果 -->
+                    <div id="bookSearchResults">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-search fa-2x mb-2"></i>
+                            <p>请输入图书名称进行搜索</p>
+                        </div>
+                    </div>
+
+                    <!-- 加载状态 -->
+                    <div id="bookSearchLoading" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">搜索中...</span>
+                        </div>
+                        <p class="mt-2">搜索中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // 初始化Select2
+            $('#circleId').select2({
+                theme: 'bootstrap-5',
+                placeholder: '请选择圈子'
+            });
+
+            // 字符计数
+            $('#reason').on('input', function() {
+                const count = $(this).val().length;
+                $('#reasonCount').text(count);
+                
+                if (count > 1000) {
+                    $(this).addClass('is-invalid');
+                } else {
+                    $(this).removeClass('is-invalid');
+                }
+            });
+
+            // 表单验证
+            $('#recommendationForm').on('submit', function(e) {
+                if (!$('#bookId').val()) {
+                    e.preventDefault();
+                    alert('请选择要推荐的图书！');
+                    return false;
+                }
+                if (!$('#circleId').val()) {
+                    e.preventDefault();
+                    alert('请选择要推荐到的圈子！');
+                    return false;
+                }
+            });
+
+            // 初始化字符计数
+            $('#reason').trigger('input');
+        });
+
+        // 显示图书选择模态框
+        function showBookModal() {
+            $('#bookModal').modal('show');
+        }
+
+        // 搜索图书
+        function searchBooks() {
+            const keyword = $('#modalBookSearch').val().trim();
+            if (!keyword) {
+                alert('请输入图书名称');
+                return;
+            }
+
+            $('#bookSearchLoading').show();
+            $('#bookSearchResults').hide();
+
+            // 调用图书搜索API
+            $.get('/books/api/books/search', { keyword: keyword })
+                .done(function(data) {
+                    displayBookResults(data);
+                })
+                .fail(function() {
+                    // 如果API调用失败，显示手动输入选项
+                    $('#bookSearchResults').html(`
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            搜索服务暂时不可用，您可以手动输入图书ID。
+                            <div class="mt-2">
+                                <input type="number" class="form-control" id="manualBookId" placeholder="请输入图书ID">
+                                <button type="button" class="btn btn-primary mt-2" onclick="selectManualBook()">确认选择</button>
+                            </div>
+                        </div>
+                    `);
+                })
+                .always(function() {
+                    $('#bookSearchLoading').hide();
+                    $('#bookSearchResults').show();
+                });
+        }
+
+        // 手动选择图书
+        function selectManualBook() {
+            const bookId = $('#manualBookId').val();
+            if (!bookId) {
+                alert('请输入图书ID');
+                return;
+            }
+
+            $('#bookId').val(bookId);
+            $('#bookSearch').val('图书ID: ' + bookId);
+            $('#selectedBookPreview').hide();
+            $('#bookModal').modal('hide');
+        }
+
+        // 显示图书搜索结果
+        function displayBookResults(books) {
+            if (!books || books.length === 0) {
+                $('#bookSearchResults').html(`
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-book fa-2x mb-2"></i>
+                        <p>未找到相关图书</p>
+                        <small>请尝试其他关键词</small>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '<div class="row">';
+            books.forEach(book => {
+                const title = book.title || '未知标题';
+                const author = book.author || '未知作者';
+                const description = book.description ? 
+                    (book.description.length > 100 ? book.description.substring(0, 100) + '...' : book.description) 
+                    : '暂无描述';
+                
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">${title}</h6>
+                                <p class="card-text text-muted small">
+                                    <i class="fas fa-user me-1"></i>${author}
+                                </p>
+                                <p class="card-text small">${description}</p>
+                                <button type="button" class="btn btn-primary btn-sm" 
+                                        onclick="selectBook(${book.id}, '${title.replace(/'/g, "\\'")}', '${author.replace(/'/g, "\\'")}')">
+                                    选择此书
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            $('#bookSearchResults').html(html);
+        }
+
+        // 选择图书
+        function selectBook(bookId, title, author) {
+            $('#bookId').val(bookId);
+            $('#bookSearch').val(title + ' - ' + author);
+            $('#bookModal').modal('hide');
+            
+            // 显示选中的图书信息
+            updateSelectedBookPreview(bookId, title, author);
+        }
+
+        // 更新已选图书预览
+        function updateSelectedBookPreview(bookId, title, author) {
+            const previewHtml = `
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-book me-2"></i>已选图书
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6>${title}</h6>
+                                <p class="text-muted mb-1">
+                                    <i class="fas fa-user me-1"></i>${author}
+                                </p>
+                                <small class="text-muted">图书ID: ${bookId}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            $('#selectedBookPreview').html(previewHtml).show();
+        }
+
+        // 回车搜索
+        $('#modalBookSearch').on('keypress', function(e) {
+            if (e.which === 13) {
+                searchBooks();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书平台'">编辑日志 - 墨韵读书平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        .page-header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .text-muted {
+            font-size: 0.9rem;
+        }
+        .mood-option {
+            transition: all 0.3s ease;
+        }
+        .mood-option:hover {
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <!-- 页面头部 -->
+        <div class="page-header p-4 text-center text-white">
+            <h1 class="mb-2">
+                <i class="fas fa-edit me-2"></i>
+                编辑日志
+            </h1>
+            <p class="mb-0">修改您的读书日志</p>
+        </div>
+
+        <!-- 表单卡片 -->
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card">
+                    <div class="card-body p-5">
+                        <!-- 错误消息 -->
+                        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span th:text="${errorMessage}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+
+                        <!-- 编辑表单 -->
+                        <form th:action="@{/diary/{id}/edit(id=${diary.id})}" th:object="${diary}" method="post">
+                            <div class="row">
+                                <!-- 日志标题 -->
+                                <div class="col-md-12 mb-4">
+                                    <label for="title" class="form-label">
+                                        <i class="fas fa-heading me-2 text-primary"></i>日志标题
+                                    </label>
+                                    <input type="text" th:field="*{title}" class="form-control" id="title" 
+                                           placeholder="请输入日志标题" required>
+                                    <div th:if="${#fields.hasErrors('title')}" class="text-danger mt-1">
+                                        <small th:errors="*{title}"></small>
+                                    </div>
+                                </div>
+
+                                <!-- 相关图书 -->
+                                <div class="col-md-6 mb-4">
+                                    <label for="book" class="form-label">
+                                        <i class="fas fa-book me-2 text-primary"></i>相关图书
+                                    </label>
+                                    <select th:field="*{book}" class="form-select" id="book">
+                                        <option value="">请选择图书（可选）</option>
+                                        <option th:each="book : ${books}" th:value="${book.id}" th:text="${book.title}">图书标题</option>
+                                    </select>
+                                    <small class="text-muted">选择与本日志相关的图书</small>
+                                </div>
+
+                                <!-- 阅读心情 -->
+                                <div class="col-md-6 mb-4">
+                                    <label for="mood" class="form-label">
+                                        <i class="fas fa-heart me-2 text-primary"></i>阅读心情
+                                    </label>
+                                    <select th:field="*{mood}" class="form-select" id="mood">
+                                        <option value="">请选择心情（可选）</option>
+                                        <option th:each="mood : ${readingMoods}" th:value="${mood}" th:text="${mood.displayName}">心情</option>
+                                    </select>
+                                    <small class="text-muted">选择您当前的阅读心情</small>
+                                </div>
+
+                                <!-- 隐私设置 -->
+                                <div class="col-md-12 mb-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-lock me-2 text-primary"></i>隐私设置
+                                    </label>
+                                    <div class="row">
+                                        <div th:each="privacy : ${privacyOptions}" class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" th:field="*{privacy}" 
+                                                       th:value="${privacy}" th:id="${privacy}">
+                                                <label class="form-check-label" th:for="${privacy}" th:text="${privacy.displayName}">
+                                                    隐私选项
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">选择日志的隐私设置</small>
+                                </div>
+
+                                <!-- 日志内容 -->
+                                <div class="col-md-12 mb-4">
+                                    <label for="content" class="form-label">
+                                        <i class="fas fa-pen me-2 text-primary"></i>日志内容
+                                    </label>
+                                    <textarea th:field="*{content}" class="form-control" id="content" 
+                                              rows="12" placeholder="请输入您的读书感想、心得体会..." required></textarea>
+                                    <small class="text-muted">分享您的阅读感受、心得体会或者读书笔记</small>
+                                    <div th:if="${#fields.hasErrors('content')}" class="text-danger mt-1">
+                                        <small th:errors="*{content}"></small>
+                                    </div>
+                                </div>
+
+                                <!-- 操作按钮 -->
+                                <div class="col-12 text-center">
+                                    <button type="submit" class="btn btn-primary me-3">
+                                        <i class="fas fa-save me-2"></i>保存修改
+                                    </button>
+                                    <a th:href="@{/diary/{id}(id=${diary.id})}" class="btn btn-secondary">
+                                        <i class="fas fa-times me-2"></i>取消
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 自动保存功能（可选）
+        let autoSaveTimer;
+        const contentTextarea = document.getElementById('content');
+
+        contentTextarea.addEventListener('input', function() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(function() {
+                // 可以在这里添加自动保存逻辑
+                console.log('自动保存中...');
+            }, 3000); // 3秒后自动保存
+        });
+
+        // 字数统计
+        function updateWordCount() {
+            const content = contentTextarea.value;
+            const wordCount = content.length;
+            const wordCountDisplay = document.getElementById('wordCount');
+            if (wordCountDisplay) {
+                wordCountDisplay.textContent = wordCount + ' 字';
+            }
+        }
+
+        contentTextarea.addEventListener('input', updateWordCount);
+        updateWordCount(); // 初始化字数统计
+    </script>
+</body>
+</html> 

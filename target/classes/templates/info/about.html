@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书'">关于我们 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 100px;
+            background-color: #f8f9fa;
+        }
+        .about-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        .about-section {
+            background: white;
+            border-radius: 15px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .feature-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        .team-member {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .team-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: block;
+            border: 4px solid #667eea;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: block;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #667eea;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            padding-left: 2rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        .timeline-year {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 使用通用导航栏片段 -->
+    <div th:replace="fragments/navbar :: navbar('about')"></div>
+
+    <!-- 页面头部 -->
+    <div class="about-header">
+        <div class="container">
+            <h1><i class="fas fa-heart me-3"></i>关于墨韵读书</h1>
+            <p class="mb-0">发现好书，分享智慧，与书友共同成长</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 平台介绍 -->
+        <div class="about-section">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2 class="mb-4">我们的使命</h2>
+                    <p class="lead">墨韵读书致力于打造一个温馨、智慧的在线阅读社区，让每一位爱书之人都能在这里找到属于自己的精神家园。</p>
+                    <p>我们相信，阅读不仅是个人成长的重要途径，更是连接心灵、传递智慧的桥梁。通过分享读书心得、交流思想感悟，我们希望帮助每一位用户发现更多好书，收获更深层次的阅读体验。</p>
+                </div>
+                <div class="col-lg-6">
+                    <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500&h=300&fit=crop&crop=top" 
+                         alt="关于我们" class="img-fluid rounded"
+                         onerror="this.src='https://via.placeholder.com/500x300/667eea/ffffff?text=墨韵读书'">
+                </div>
+            </div>
+        </div>
+
+        <!-- 核心功能 -->
+        <div class="about-section">
+            <h2 class="text-center mb-5">核心功能</h2>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <i class="fas fa-book feature-icon"></i>
+                        <h4>图书管理</h4>
+                        <p>完善的图书收藏与分类管理，让您的藏书井然有序</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <i class="fas fa-pen-fancy feature-icon"></i>
+                        <h4>书评分享</h4>
+                        <p>记录阅读感悟，与其他读者分享您的独特见解</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <i class="fas fa-comments feature-icon"></i>
+                        <h4>读书讨论</h4>
+                        <p>参与热门话题讨论，结识志同道合的书友</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <i class="fas fa-journal-whills feature-icon"></i>
+                        <h4>阅读日志</h4>
+                        <p>记录阅读历程，追踪个人成长轨迹</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 平台数据 -->
+        <div class="about-section">
+            <h2 class="text-center mb-5">平台数据</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" th:text="${statistics.totalUsers}">0</span>
+                    <div>注册用户</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" th:text="${statistics.totalBooks}">0</span>
+                    <div>图书收录</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" th:text="${statistics.totalReviews}">0</span>
+                    <div>书评文章</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" th:text="${statistics.totalDiscussions}">0</span>
+                    <div>讨论话题</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 发展历程 -->
+        <div class="about-section">
+            <h2 class="text-center mb-5">发展历程</h2>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-year">2025年</div>
+                            <h5>墨韵读书平台正式上线</h5>
+                            <p>经过精心设计和开发，墨韵读书平台正式向广大读者开放，提供完整的阅读社交服务。</p>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-year">2025年中</div>
+                            <h5>用户社区快速发展</h5>
+                            <p>平台用户数量快速增长，书评和讨论内容日趋丰富，形成了良好的阅读交流氛围。</p>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-year">未来规划</div>
+                            <h5>持续优化与功能扩展</h5>
+                            <p>我们将继续完善平台功能，引入更多创新特性，为用户提供更优质的阅读体验。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 联系我们 -->
+        <div class="about-section text-center">
+            <h2 class="mb-4">联系我们</h2>
+            <p class="lead mb-4">如果您有任何建议或问题，欢迎随时与我们联系</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-envelope feature-icon"></i>
+                        <h5>邮箱联系</h5>
+                        <p><a href="mailto:contact@moyun.com">contact@moyun.com</a></p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-question-circle feature-icon"></i>
+                        <h5>帮助中心</h5>
+                        <p><a href="/help">查看常见问题</a></p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-phone feature-icon"></i>
+                        <h5>在线咨询</h5>
+                        <p><a href="/contact">联系我们</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <!-- 导师侧边栏导航片段 -->
+    <div th:fragment="teacher-sidebar(activeItem)" class="list-group">
+        <div class="list-group-item list-group-item-action bg-primary text-white">
+            <h6 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>导师功能</h6>
+        </div>
+        
+        <a href="/teacher/dashboard" 
+           class="list-group-item list-group-item-action"
+           th:classappend="${activeItem == 'dashboard'} ? 'active'">
+            <i class="fas fa-tachometer-alt me-2"></i>工作台
+        </a>
+        
+        <a href="/teacher/students" 
+           class="list-group-item list-group-item-action"
+           th:classappend="${activeItem == 'students'} ? 'active'">
+            <i class="fas fa-user-graduate me-2"></i>学生管理
+        </a>
+        
+        <a href="/teacher/messages" 
+           class="list-group-item list-group-item-action"
+           th:classappend="${activeItem == 'messages'} ? 'active'">
+            <i class="fas fa-envelope me-2"></i>消息管理
+        </a>
+        
+        <a href="/teacher/recommendations" 
+           class="list-group-item list-group-item-action"
+           th:classappend="${activeItem == 'recommendations'} ? 'active'">
+            <i class="fas fa-star me-2"></i>图书推荐
+        </a>
+        
+        <a href="/teacher/circles" 
+           class="list-group-item list-group-item-action"
+           th:classappend="${activeItem == 'circles'} ? 'active'">
+            <i class="fas fa-users me-2"></i>我的圈子
+        </a>
+        
+        <div class="list-group-item">
+            <small class="text-muted">快捷操作</small>
+        </div>
+        
+        <a href="/teacher/messages/send" 
+           class="list-group-item list-group-item-action text-primary">
+            <i class="fas fa-paper-plane me-2"></i>发送消息
+        </a>
+        
+        <a href="/teacher/recommendations/create" 
+           class="list-group-item list-group-item-action text-success">
+            <i class="fas fa-plus me-2"></i>推荐图书
+        </a>
+        
+        <a href="/circles/create" 
+           class="list-group-item list-group-item-action text-info">
+            <i class="fas fa-plus-circle me-2"></i>创建圈子
+        </a>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书平台'">图书推荐管理 - 墨韵读书平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .main-content {
+            padding: 20px 0;
+        }
+        .recommendation-card {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .recommendation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .book-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .book-cover {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+        .book-details {
+            flex: 1;
+        }
+        .book-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .book-author {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .recommendation-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .meta-item {
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #495057;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-viewed { background: #d1ecf1; color: #0c5460; }
+        .status-accepted { background: #d4edda; color: #155724; }
+        .status-declined { background: #f8d7da; color: #721c24; }
+        .status-reading { background: #e2e3e5; color: #383d41; }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
+        .recommendation-reason {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #007bff;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .search-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .level-stars {
+            color: #ffc107;
+        }
+        .pagination-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/navbar :: navbar('teacher')}"></div>
+
+    <!-- 主要内容 -->
+    <div class="container mt-5 pt-3">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2><i class="bi bi-bookmark-star text-primary"></i> 图书推荐管理</h2>
+                <p class="text-muted">管理您推荐给圈子的图书记录</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="/teacher/recommendations/create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> 推荐新图书
+                </a>
+            </div>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="search-section">
+            <form method="get" action="/teacher/recommendations">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" class="form-control" name="search" 
+                                   th:value="${search}" placeholder="搜索图书标题、作者或推荐理由...">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i> 搜索
+                            </button>
+                            <a href="/teacher/recommendations" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> 重置
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- 推荐列表 -->
+        <div th:if="${recommendations != null and recommendations.hasContent()}">
+            <div th:each="recommendation : ${recommendations.content}" class="recommendation-card">
+                <div class="book-info">
+                    <img th:src="${recommendation.book.coverImageUrl}" 
+                         th:alt="${recommendation.book.title}"
+                         class="book-cover"
+                         onerror="this.src='/images/default-book-cover.jpg'">
+                    <div class="book-details">
+                        <div class="book-title" th:text="${recommendation.book.title}">图书标题</div>
+                        <div class="book-author" th:text="${recommendation.book.author}">作者</div>
+                        
+                        <div class="recommendation-meta">
+                            <span class="meta-item">
+                                <i class="bi bi-calendar3"></i>
+                                推荐时间：<span th:text="${#temporals.format(recommendation.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                            </span>
+                            <span class="meta-item">
+                                <i class="bi bi-star-fill level-stars"></i>
+                                推荐等级：
+                                <span th:each="i : ${#numbers.sequence(1, recommendation.recommendationLevel)}">★</span>
+                                <span th:each="i : ${#numbers.sequence(recommendation.recommendationLevel + 1, 5)}">☆</span>
+                            </span>
+                            <span class="meta-item">
+                                <i class="bi bi-tag"></i>
+                                类型：<span th:text="${recommendation.recommendationType.displayName}"></span>
+                            </span>
+                            <span class="status-badge" 
+                                  th:classappend="${'status-' + #strings.toLowerCase(recommendation.status.name())}"
+                                  th:text="${recommendation.status.displayName}">
+                                状态
+                            </span>
+                        </div>
+
+                        <div th:if="${recommendation.reason != null and !#strings.isEmpty(recommendation.reason)}" 
+                             class="recommendation-reason">
+                            <strong><i class="bi bi-chat-quote"></i> 推荐理由：</strong>
+                            <div th:text="${recommendation.reason}">推荐理由内容</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination-wrapper" th:if="${recommendations.totalPages > 1}">
+                <nav>
+                    <ul class="pagination">
+                        <!-- 上一页 -->
+                        <li class="page-item" th:classappend="${recommendations.first} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/teacher/recommendations(page=${recommendations.number - 1}, size=${recommendations.size}, search=${search})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- 页码 -->
+                        <li th:each="pageNum : ${#numbers.sequence(0, recommendations.totalPages - 1)}"
+                            class="page-item" 
+                            th:classappend="${pageNum == recommendations.number} ? 'active'">
+                            <a class="page-link" 
+                               th:href="@{/teacher/recommendations(page=${pageNum}, size=${recommendations.size}, search=${search})}"
+                               th:text="${pageNum + 1}">1</a>
+                        </li>
+
+                        <!-- 下一页 -->
+                        <li class="page-item" th:classappend="${recommendations.last} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/teacher/recommendations(page=${recommendations.number + 1}, size=${recommendations.size}, search=${search})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div th:if="${recommendations == null or !recommendations.hasContent()}" class="empty-state">
+            <i class="bi bi-bookmark-x"></i>
+            <h4 th:if="${search != null and !#strings.isEmpty(search)}">未找到相关推荐记录</h4>
+            <h4 th:if="${search == null or #strings.isEmpty(search)}">暂无推荐记录</h4>
+            <p th:if="${search != null and !#strings.isEmpty(search)}" class="text-muted">
+                尝试使用其他关键词搜索，或者
+                <a href="/teacher/recommendations" class="text-decoration-none">查看所有推荐</a>
+            </p>
+            <p th:if="${search == null or #strings.isEmpty(search)}" class="text-muted">
+                您还没有推荐过任何图书，
+                <a href="/teacher/recommendations/create" class="text-decoration-none">立即推荐图书</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

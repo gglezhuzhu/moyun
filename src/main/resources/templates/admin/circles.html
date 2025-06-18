@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圈子管理 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 使用通用导航栏片段 -->
+    <div th:replace="fragments/navbar :: navbar('admin')"></div>
+
+    <div class="container" style="margin-top: 100px;">
+        <!-- 页面标题和搜索 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2><i class="fas fa-users-cog me-2"></i>圈子管理</h2>
+                <p class="text-muted">管理系统中的所有读书圈子</p>
+            </div>
+            <div class="col-md-6">
+                <form method="get" action="/admin/circles">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="keyword" 
+                               th:value="${keyword}" placeholder="搜索圈子名称或描述...">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <a href="/admin/circles" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> 清除
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 操作提示 -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- 圈子列表 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>圈子列表
+                        <span class="badge bg-primary ms-2" th:text="${circles.totalElements}">0</span>
+                    </h5>
+                    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>返回控制台
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div th:if="${circles.empty}" class="text-center py-5">
+                    <i class="fas fa-users-cog fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">暂无圈子</h5>
+                    <p class="text-muted">系统中还没有任何圈子记录</p>
+                </div>
+
+                <div th:if="${!circles.empty}">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>圈子信息</th>
+                                    <th>创建者</th>
+                                    <th>类型</th>
+                                    <th>隐私设置</th>
+                                    <th>成员数</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="circle : ${circles.content}">
+                                    <td>
+                                        <a th:href="@{/circles/{id}(id=${circle.id})}" 
+                                           class="text-decoration-none fw-bold"
+                                           th:text="${circle.name}">圈子名称</a>
+                                        <div class="small text-muted" 
+                                             th:text="${#strings.abbreviate(circle.description, 50)}">描述摘要</div>
+                                        <div class="small text-muted" th:if="${circle.rules}">
+                                            <i class="fas fa-gavel me-1"></i>有圈子规则
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle me-2 text-muted"></i>
+                                            <span th:text="${circle.creator.displayName}">创建者</span>
+                                        </div>
+                                        <div class="small text-muted" th:text="${circle.creator.username}">@username</div>
+                                        <span class="badge bg-info small" th:text="${circle.creator.userRole.displayName}">角色</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${circle.type.name() == 'READING_GROUP'} ? 'bg-success' : 
+                                                             (${circle.type.name() == 'STUDY_GROUP'} ? 'bg-info' : 'bg-secondary')"
+                                              th:text="${circle.type.displayName}">类型</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${circle.privacy.name() == 'PUBLIC'} ? 'bg-success' : 
+                                                             (${circle.privacy.name() == 'PRIVATE'} ? 'bg-danger' : 'bg-warning')"
+                                              th:text="${circle.privacy.displayName}">隐私</span>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-users me-1 text-muted"></i>
+                                        <span th:text="${circle.memberCount}">0</span>
+                                        <span th:if="${circle.maxMembers}" class="text-muted small">
+                                            / <span th:text="${circle.maxMembers}">50</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${circle.status.name() == 'ACTIVE'} ? 'bg-success' : 'bg-secondary'"
+                                              th:text="${circle.status.displayName}">状态</span>
+                                    </td>
+                                    <td>
+                                        <div th:text="${#temporals.format(circle.createdAt, 'yyyy-MM-dd')}">创建日期</div>
+                                        <div class="small text-muted" 
+                                             th:text="${#temporals.format(circle.createdAt, 'HH:mm')}">时间</div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a th:href="@{/circles/{id}(id=${circle.id})}" 
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <form th:action="@{/admin/circles/{id}/delete(id=${circle.id})}" 
+                                                  method="post" 
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('确定要删除这个圈子吗？此操作不可恢复！')">
+                                                <button type="submit" 
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        title="删除圈子">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div th:if="${circles.totalPages > 1}" class="d-flex justify-content-center mt-4">
+                        <nav>
+                            <ul class="pagination">
+                                <li class="page-item" th:classappend="${circles.first} ? 'disabled'">
+                                    <a class="page-link" 
+                                       th:href="@{/admin/circles(page=${circles.number - 1}, keyword=${keyword})}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                
+                                <li th:each="pageNum : ${#numbers.sequence(0, circles.totalPages - 1)}"
+                                    class="page-item"
+                                    th:classappend="${pageNum == circles.number} ? 'active'">
+                                    <a class="page-link" 
+                                       th:href="@{/admin/circles(page=${pageNum}, keyword=${keyword})}"
+                                       th:text="${pageNum + 1}">1</a>
+                                </li>
+                                
+                                <li class="page-item" th:classappend="${circles.last} ? 'disabled'">
+                                    <a class="page-link" 
+                                       th:href="@{/admin/circles(page=${circles.number + 1}, keyword=${keyword})}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

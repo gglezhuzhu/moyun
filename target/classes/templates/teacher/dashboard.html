@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书'">导师工作台 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 80px; /* 为导航栏留出空间 */
+        }
+        .dashboard-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div th:replace="~{fragments/navbar :: navbar('teacher')}"></div>
+
+    <div class="container-fluid dashboard-container">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-user-tie me-2"></i>导师信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-center" th:text="${teacher.displayName}">导师姓名</h6>
+                        <p class="text-muted text-center small" th:text="${teacher.teacherInfo}">职位信息</p>
+                        
+                        <hr>
+                        
+                        <!-- 统计信息 -->
+                        <div class="row text-center">
+                            <div class="col-3">
+                                <div class="text-primary">
+                                    <i class="fas fa-user-graduate fa-2x"></i>
+                                </div>
+                                <small class="text-muted">学生</small>
+                                <div class="fw-bold" th:text="${stats.studentCount}">0</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-success">
+                                    <i class="fas fa-star fa-2x"></i>
+                                </div>
+                                <small class="text-muted">推荐</small>
+                                <div class="fw-bold" th:text="${stats.recommendationCount}">0</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-warning">
+                                    <i class="fas fa-envelope fa-2x"></i>
+                                </div>
+                                <small class="text-muted">申请</small>
+                                <div class="fw-bold" th:text="${stats.pendingApplicationCount}">0</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-info">
+                                    <i class="fas fa-comments fa-2x"></i>
+                                </div>
+                                <small class="text-muted">讨论</small>
+                                <div class="fw-bold" th:text="${stats.pendingDiscussionCount}">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快捷操作 -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6><i class="fas fa-bolt me-2"></i>快捷操作</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/teacher/recommendations/create" class="btn btn-success btn-sm">
+                                <i class="fas fa-star me-2"></i>推荐图书
+                            </a>
+                            <a href="/circles/create" class="btn btn-info btn-sm">
+                                <i class="fas fa-plus-circle me-2"></i>创建圈子
+                            </a>
+                            <a href="/teacher/questions" class="btn btn-warning btn-sm">
+                                <i class="fas fa-comments me-2"></i>查看问题
+                            </a>
+                            <a href="/teacher/applications" class="btn btn-danger btn-sm">
+                                <i class="fas fa-envelope me-2"></i>处理申请
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-md-9">
+                <!-- 欢迎信息 -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4><i class="fas fa-home me-2"></i>欢迎回来，<span th:text="${teacher.displayName}">导师</span>！</h4>
+                        <p class="text-muted">这里是您的导师工作台，您可以推荐图书到圈子、维护圈子和回答学生问题。</p>
+                    </div>
+                </div>
+
+                <!-- 最近推荐 -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6><i class="fas fa-star me-2"></i>最近推荐</h6>
+                        <a href="/teacher/recommendations" class="btn btn-sm btn-outline-success">查看全部</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${#lists.isEmpty(recentRecommendations)}" class="text-muted text-center py-3">
+                            <i class="fas fa-star fa-2x mb-2"></i>
+                            <p>暂无推荐记录</p>
+                            <a href="/teacher/recommendations/create" class="btn btn-success">推荐第一本图书</a>
+                        </div>
+                        <div th:each="recommendation : ${recentRecommendations}" class="border-bottom pb-2 mb-2">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1" th:text="${recommendation.book.title}">图书标题</h6>
+                                <small class="text-muted" th:text="${#temporals.format(recommendation.createdAt, 'MM-dd HH:mm')}">时间</small>
+                            </div>
+                            <p class="mb-1 text-muted small" th:text="${#strings.abbreviate(recommendation.reason, 50)}">推荐理由</p>
+                            <small>
+                                <span th:text="${recommendation.starDisplay}">★★★★★</span>
+                                <span class="ms-2" th:classappend="${recommendation.statusClass}" th:text="${recommendation.status.displayName}">状态</span>
+                                <span class="text-muted ms-2">圈子推荐</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 师生问答 -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6><i class="fas fa-comments me-2"></i>学生讨论</h6>
+                        <a href="/teacher/questions" class="btn btn-sm btn-outline-warning">查看全部</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${#lists.isEmpty(pendingDiscussions)}" class="text-muted text-center py-3">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <p>暂无待回复的讨论</p>
+                        </div>
+                        <div th:unless="${#lists.isEmpty(pendingDiscussions)}">
+                            <div th:each="discussion : ${pendingDiscussions}" class="border-bottom pb-2 mb-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a th:href="@{'/discussions/' + ${discussion.id}}" class="text-decoration-none" th:text="${discussion.title}">讨论标题</a>
+                                        </h6>
+                                        <p class="mb-1 text-muted small" th:text="${#strings.abbreviate(discussion.content, 80)}">讨论内容</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-graduate me-1"></i><span th:text="${discussion.author.displayName}">学生姓名</span>
+                                            <i class="fas fa-clock ms-3 me-1"></i><span th:text="${#temporals.format(discussion.createdAt, 'MM-dd HH:mm')}">发布时间</span>
+                                            <span class="ms-3">
+                                                <i class="fas fa-tag me-1"></i><span th:text="${discussion.type}">问题咨询</span>
+                                            </span>
+                                        </small>
+                                    </div>
+                                    <div class="ms-2">
+                                        <span class="badge bg-warning">待回复</span>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <a th:href="@{'/discussions/' + ${discussion.id}}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-reply me-1"></i>立即回复
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 待处理申请 -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6><i class="fas fa-envelope me-2"></i>待处理申请</h6>
+                        <a href="/teacher/applications" class="btn btn-sm btn-outline-danger">管理申请</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${#lists.isEmpty(pendingApplications)}" class="text-muted text-center py-3">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <p>暂无待处理的申请</p>
+                        </div>
+                        <div th:unless="${#lists.isEmpty(pendingApplications)}">
+                            <div th:each="app : ${pendingApplications}" class="border-bottom pb-2 mb-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <span th:text="${app.student.displayName}">学生姓名</span> 申请成为您的学生
+                                        </h6>
+                                        <p class="mb-1 text-muted small" th:if="${app.applicationMessage}" 
+                                           th:text="${#strings.abbreviate(app.applicationMessage, 80)}">申请理由</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i><span th:text="${app.student.school ?: '未填写学校'}">学校</span>
+                                            <i class="fas fa-clock ms-3 me-1"></i><span th:text="${#temporals.format(app.appliedAt, 'MM-dd HH:mm')}">申请时间</span>
+                                        </small>
+                                    </div>
+                                    <div class="ms-2">
+                                        <span class="badge bg-warning">待审核</span>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <form th:action="@{'/teacher/applications/' + ${app.id} + '/approve'}" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-success btn-sm me-2">
+                                            <i class="fas fa-check me-1"></i>同意
+                                        </button>
+                                    </form>
+                                    <form th:action="@{'/teacher/applications/' + ${app.id} + '/reject'}" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-times me-1"></i>拒绝
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 我的圈子 -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6><i class="fas fa-users me-2"></i>我的圈子</h6>
+                        <a href="/teacher/circles" class="btn btn-sm btn-outline-info">查看全部</a>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${myCircles.empty}" class="text-muted text-center py-3">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <p>您还没有创建任何圈子</p>
+                            <a href="/circles/create" class="btn btn-primary">创建第一个圈子</a>
+                        </div>
+                        <div class="row" th:unless="${myCircles.empty}">
+                            <div class="col-md-6" th:each="circle : ${myCircles}">
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title" th:text="${circle.name}">圈子名称</h6>
+                                        <p class="card-text text-muted small" th:text="${#strings.abbreviate(circle.description, 60)}">圈子描述</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-users me-1"></i><span th:text="${circle.memberCount}">0</span> 成员
+                                            </small>
+                                            <a th:href="@{'/circles/' + ${circle.id}}" class="btn btn-sm btn-outline-primary">查看</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

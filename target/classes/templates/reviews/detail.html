@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title th:text="${pageTitle} + ' - 墨韵读书平台'">书评详情 - 墨韵读书平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .review-content {
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+        .meta-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+        }
+        .comment-item {
+            border-left: 3px solid #667eea;
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+        .rating-stars {
+            color: #ffc107;
+        }
+        .book-info {
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 使用通用导航栏片段 -->
+    <div th:replace="~{fragments/navbar :: navbar('reviews')}"></div>
+
+    <div class="container py-5" style="margin-top: 80px;">
+        <!-- 返回按钮 -->
+        <div class="mb-3">
+            <a href="/reviews" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>返回书评列表
+            </a>
+        </div>
+
+        <!-- 书评详情 -->
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="row">
+                    <!-- 书评信息 -->
+                    <div class="col-lg-8">
+                        <h1 class="mb-4" th:text="${review.title ?: '未知标题'}">书评标题</h1>
+                        
+                        <div class="meta-info mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <i class="fas fa-user me-2 text-primary"></i>
+                                        <strong>作者：</strong>
+                                        <span th:text="${review.user != null ? review.user.displayName : '匿名用户'}">用户名</span>
+                                    </p>
+                                    <p class="mb-1">
+                                        <i class="fas fa-calendar me-2 text-primary"></i>
+                                        <strong>发布时间：</strong>
+                                        <span th:text="${review.createdAt != null ? #temporals.format(review.createdAt, 'yyyy-MM-dd HH:mm') : '未知时间'}">发布时间</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <i class="fas fa-star me-2 text-warning"></i>
+                                        <strong>评分：</strong>
+                                        <span class="rating-stars">
+                                            <span th:each="i : ${#numbers.sequence(1, review.rating ?: 0)}">★</span>
+                                            <span th:each="i : ${#numbers.sequence((review.rating ?: 0) + 1, 5)}">☆</span>
+                                        </span>
+                                        <span th:text="${(review.rating ?: 0)} + '/5'">5/5</span>
+                                    </p>
+                                    <p class="mb-1">
+                                        <i class="fas fa-eye me-2 text-primary"></i>
+                                        <strong>浏览次数：</strong>
+                                        <span th:text="${review.viewCount ?: 0}">0</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 书评内容 -->
+                        <div class="review-content mb-4">
+                            <div th:utext="${review.content ?: '暂无内容'}">书评内容</div>
+                        </div>
+
+                        <!-- 互动按钮 -->
+                        <div class="d-flex align-items-center mb-4">
+                            <button class="btn btn-outline-primary me-3" onclick="toggleLike()" th:classappend="${isLiked} ? 'active' : ''">
+                                <i class="fas fa-heart me-2"></i>
+                                <span th:text="${isLiked} ? '已点赞' : '点赞'">点赞</span>
+                                <span class="badge bg-primary ms-1" th:text="${review.likeCount ?: 0}">0</span>
+                            </button>
+                            <button class="btn btn-outline-success me-3" onclick="showCommentForm()">
+                                <i class="fas fa-comment me-2"></i>评论
+                            </button>
+                            <!-- 作者操作按钮 -->
+                            <div th:if="${review.user != null and #authentication.name == review.user.username}" class="ms-auto">
+                                <a th:href="@{/reviews/{id}/edit(id=${review.id})}" class="btn btn-outline-warning me-2">
+                                    <i class="fas fa-edit me-1"></i>编辑
+                                </a>
+                                <button class="btn btn-outline-danger" onclick="deleteReview()">
+                                    <i class="fas fa-trash me-1"></i>删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 图书信息侧边栏 -->
+                    <div class="col-lg-4">
+                        <div class="book-info mb-4" th:if="${review.book != null}">
+                            <h5 class="mb-3">
+                                <i class="fas fa-book me-2"></i>相关图书
+                            </h5>
+                            <div class="text-center mb-3">
+                                <img th:src="${review.book.coverImageUrl}" class="img-fluid rounded" 
+                                     style="max-height: 200px;" th:alt="${review.book.title}"
+                                     onerror="this.src='https://via.placeholder.com/200x300/f8f9fa/6c757d?text=封面'">
+                            </div>
+                            <h6 th:text="${review.book.title ?: '未知图书'}">图书标题</h6>
+                            <p class="text-muted mb-2">
+                                <strong>作者：</strong><span th:text="${review.book.author ?: '未知作者'}">作者</span>
+                            </p>
+                            <p class="text-muted mb-2" th:if="${review.book.publisher}">
+                                <strong>出版社：</strong><span th:text="${review.book.publisher}">出版社</span>
+                            </p>
+                            <div class="text-center">
+                                <a th:href="@{/books/{id}(id=${review.book.id})}" class="btn btn-sm btn-primary">
+                                    查看图书详情
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-info-circle me-2"></i>书评统计
+                                </h5>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <strong>字数统计：</strong>
+                                        <span th:text="${review.content != null ? #strings.length(review.content) : 0} + ' 字'">字数</span>
+                                    </li>
+                                    <li class="mb-2" th:if="${review.updatedAt != null and review.updatedAt != review.createdAt}">
+                                        <strong>最后修改：</strong>
+                                        <span th:text="${#temporals.format(review.updatedAt, 'yyyy-MM-dd HH:mm')}">修改时间</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>状态：</strong>
+                                        <span class="badge bg-success">已发布</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评论表单 -->
+        <div class="card" th:if="${#authentication.principal != null}" id="commentForm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-comment-dots me-2"></i>发表评论
+                </h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/reviews/{id}/comment(id=${review.id})}" method="post">
+                    <div class="mb-3">
+                        <textarea name="content" class="form-control" rows="3" 
+                                  placeholder="请输入您的评论..." required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>发表评论
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 未登录提示 -->
+        <div class="card" th:if="${#authentication.principal == null}">
+            <div class="card-body text-center">
+                <p class="text-muted mb-3">
+                    <i class="fas fa-sign-in-alt me-2"></i>请先登录后再发表评论
+                </p>
+                <a href="/user/login" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>立即登录
+                </a>
+            </div>
+        </div>
+
+        <!-- 评论列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-comments me-2"></i>评论列表
+                    <span class="badge bg-primary ms-2" th:text="${commentCount ?: 0}">0</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div th:if="${comments == null or comments.empty}" class="text-center text-muted py-4">
+                    <i class="fas fa-comment-slash fa-3x mb-3"></i>
+                    <p>暂无评论，快来发表第一条评论吧！</p>
+                </div>
+
+                <div th:if="${comments != null}" th:each="comment : ${comments.content}" class="comment-item border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong th:text="${comment.user != null ? comment.user.displayName : '匿名用户'}">评论者</strong>
+                            <small class="text-muted ms-2" 
+                                   th:text="${comment.createdAt != null ? #temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm') : '未知时间'}">评论时间</small>
+                        </div>
+                        <div th:if="${#authentication.principal != null}">
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    th:onclick="'deleteComment(' + ${comment.id} + ')'">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="mb-0" th:text="${comment.content ?: '暂无内容'}">评论内容</p>
+                </div>
+
+                <!-- 分页 -->
+                <nav th:if="${comments != null and comments.totalPages > 1}" aria-label="评论分页">
+                    <ul class="pagination justify-content-center mt-4">
+                        <li class="page-item" th:class="${comments.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/reviews/{id}(id=${review.id}, page=${comments.number - 1})}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li th:each="i : ${#numbers.sequence(0, comments.totalPages - 1)}" 
+                            class="page-item" th:class="${i == comments.number} ? 'active'">
+                            <a class="page-link" th:href="@{/reviews/{id}(id=${review.id}, page=${i})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:class="${comments.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/reviews/{id}(id=${review.id}, page=${comments.number + 1})}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showCommentForm() {
+            document.getElementById('commentForm').style.display = 'block';
+            document.getElementById('commentForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideCommentForm() {
+            document.getElementById('commentForm').style.display = 'none';
+        }
+
+        function toggleLike() {
+            const reviewId = '[[${review.id}]]';
+            console.log('开始点赞操作，书评ID:', reviewId);
+            
+            // 检查reviewId是否有效
+            if (!reviewId || reviewId === '' || reviewId === 'null') {
+                console.error('书评ID无效:', reviewId);
+                alert('书评ID无效，请刷新页面重试');
+                return;
+            }
+            
+            const token = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+            console.log('CSRF Token:', token);
+            
+            const formData = new FormData();
+            if (token) {
+                formData.append('_csrf', token);
+            }
+            
+            const likeUrl = `/reviews/${reviewId}/like`;
+            console.log('发送点赞请求到:', likeUrl);
+            
+            fetch(likeUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                console.log('响应状态:', response.status);
+                console.log('响应OK:', response.ok);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log('服务器响应:', data);
+                if (data === 'liked' || data === 'unliked') {
+                    console.log('点赞操作成功，刷新页面');
+                    location.reload();
+                } else if (data === 'login_required') {
+                    alert('请先登录');
+                    window.location.href = '/user/login';
+                } else if (data === 'error') {
+                    alert('点赞操作失败，请重试');
+                } else {
+                    console.error('未知响应:', data);
+                    alert('操作失败，请重试');
+                }
+            })
+            .catch(error => {
+                console.error('请求错误:', error);
+                alert('网络错误，请重试: ' + error.message);
+            });
+        }
+
+        function deleteReview() {
+            if (confirm('确定要删除这篇书评吗？此操作不可恢复。')) {
+                const reviewId = '[[${review.id}]]';
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/reviews/${reviewId}/delete`;
+                
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_csrf';
+                    csrfInput.value = csrfToken;
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function deleteComment(commentId) {
+            if (confirm('确定要删除这条评论吗？此操作不可恢复。')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/reviews/comment/${commentId}/delete`;
+                
+                const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_csrf';
+                    csrfInput.value = csrfToken;
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html> 

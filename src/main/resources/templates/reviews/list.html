@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">书评列表 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background-color: #f8f9fa;
+        }
+        .review-card {
+            transition: transform 0.2s;
+        }
+        .review-card:hover {
+            transform: translateY(-2px);
+        }
+        .rating-stars {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <!-- 使用通用导航栏片段 -->
+    <div th:replace="~{fragments/navbar :: navbar('reviews')}"></div>
+
+    <div class="container" style="margin-top: 100px;">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>书评</h2>
+                    <a href="/reviews/create" class="btn btn-primary">
+                        <i class="fas fa-pen"></i> 写书评
+                    </a>
+                </div>
+
+                <!-- 搜索和筛选 -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" name="keyword" class="form-control" 
+                                       placeholder="搜索书评标题或内容" th:value="${keyword}">
+                            </div>
+                            <div class="col-md-4">
+                                <select name="sort" class="form-select">
+                                    <option value="latest" th:selected="${currentSort == 'latest'}">最新</option>
+                                    <option value="popular" th:selected="${currentSort == 'popular'}">热门</option>
+                                    <option value="rating_high" th:selected="${currentSort == 'rating_high'}">评分最高</option>
+                                    <option value="rating_low" th:selected="${currentSort == 'rating_low'}">评分最低</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-outline-primary w-100">搜索</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 书评列表 -->
+                <div class="row" th:if="${reviews != null and !reviews.isEmpty()}">
+                    <div class="col-12" th:each="review : ${reviews}">
+                        <div class="card review-card mb-4">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2 text-center">
+                                        <img th:src="${review.book != null ? review.book.coverImageUrl : ''}" 
+                                             th:alt="${review.book != null ? review.book.title : '图书'}" 
+                                             class="img-fluid rounded" style="max-height: 150px;"
+                                             onerror="this.src='https://via.placeholder.com/120x180/f8f9fa/6c757d?text=封面'">
+                                    </div>
+                                    <div class="col-md-10">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h5 class="card-title mb-0">
+                                                <a th:href="@{/reviews/{id}(id=${review.id})}" class="text-decoration-none" th:text="${review.title}">书评标题</a>
+                                            </h5>
+                                            <div class="text-warning">
+                                                <span th:text="${review.starRating ?: '☆☆☆☆☆'}">★★★★★</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-muted mb-2">
+                                            <i class="fas fa-book me-1"></i>
+                                            <span th:text="${review.book != null ? review.book.title : '未知图书'}">《图书名称》</span>
+                                            <span class="mx-2">|</span>
+                                            <i class="fas fa-user me-1"></i>
+                                            <span th:text="${review.user != null ? review.user.displayName : '匿名用户'}">用户名</span>
+                                            <span class="mx-2">|</span>
+                                            <i class="fas fa-calendar me-1"></i>
+                                            <span th:text="${review.createdAt != null ? #temporals.format(review.createdAt, 'yyyy-MM-dd') : '未知日期'}">2024-01-01</span>
+                                        </p>
+                                        <p class="card-text" th:text="${review.content != null ? #strings.abbreviate(review.content, 200) : '暂无内容'}">书评内容摘要...</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="text-muted small">
+                                                <i class="fas fa-eye me-1"></i>
+                                                <span th:text="${review.viewCount ?: 0}">123</span>
+                                                <span class="mx-2">|</span>
+                                                <i class="fas fa-thumbs-up me-1"></i>
+                                                <span th:text="${review.likeCount ?: 0}">45</span>
+                                                <span class="mx-2">|</span>
+                                                <i class="fas fa-comment me-1"></i>
+                                                <span th:text="${review.commentCount ?: 0}">12</span>
+                                            </div>
+                                            <a th:href="@{/reviews/{id}(id=${review.id})}" class="btn btn-sm btn-outline-primary">阅读全文</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div class="text-center py-5" th:if="${reviews == null or reviews.isEmpty()}">
+                    <i class="fas fa-pen-nib fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">暂无书评</h4>
+                    <p class="text-muted">还没有书评，<a href="/reviews/create">写一篇</a> 分享您的阅读感受吧！</p>
+                </div>
+
+                <!-- 分页 -->
+                <nav th:if="${reviews != null and reviews.totalPages > 1}">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" th:classappend="${reviews.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/reviews(page=0, size=${reviews.size}, sort=${currentSort}, keyword=${keyword})}">首页</a>
+                        </li>
+                        <li class="page-item" th:classappend="${reviews.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/reviews(page=${reviews.number - 1}, size=${reviews.size}, sort=${currentSort}, keyword=${keyword})}">上一页</a>
+                        </li>
+                        <li class="page-item active">
+                            <span class="page-link" th:text="${reviews.number + 1} + ' / ' + ${reviews.totalPages}">1 / 5</span>
+                        </li>
+                        <li class="page-item" th:classappend="${reviews.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/reviews(page=${reviews.number + 1}, size=${reviews.size}, sort=${currentSort}, keyword=${keyword})}">下一页</a>
+                        </li>
+                        <li class="page-item" th:classappend="${reviews.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/reviews(page=${reviews.totalPages - 1}, size=${reviews.size}, sort=${currentSort}, keyword=${keyword})}">末页</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

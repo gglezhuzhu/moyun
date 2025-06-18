@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书'">学生申请管理 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .application-container {
+            margin-top: 100px;
+        }
+        .application-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+        .application-card:hover {
+            transform: translateY(-2px);
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status-approved {
+            background-color: #d1edff;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div th:replace="~{fragments/navbar :: navbar('teacher')}"></div>
+
+    <div class="container application-container">
+        <!-- 页面标题 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="fas fa-envelope me-2"></i>学生申请管理</h2>
+                <p class="text-muted">处理学生的导师申请，同意或拒绝申请</p>
+            </div>
+        </div>
+
+        <!-- 申请列表 -->
+        <div class="row">
+            <div th:if="${applications.empty}" class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">暂无学生申请</h4>
+                    <p class="text-muted">当有学生申请您为导师时，申请会显示在这里</p>
+                    <a href="/teacher/dashboard" class="btn btn-primary">
+                        <i class="fas fa-home me-1"></i>返回工作台
+                    </a>
+                </div>
+            </div>
+
+            <div th:unless="${applications.empty}" class="col-12">
+                <div th:each="app, appStat : ${applications.content}" class="application-card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h5 class="mb-1" th:text="${app.student.displayName}">学生姓名</h5>
+                                        <p class="text-muted mb-2">
+                                            <span th:if="${app.student.school}">
+                                                <i class="fas fa-school me-1"></i>
+                                                <span th:text="${app.student.school}">学校</span>
+                                            </span>
+                                            <span th:if="${app.student.major}" th:class="${app.student.school ? 'ms-3' : ''}">
+                                                <i class="fas fa-graduation-cap me-1"></i>
+                                                <span th:text="${app.student.major}">专业</span>
+                                            </span>
+                                        </p>
+                                        <div th:if="${app.applicationMessage}" class="mb-2">
+                                            <strong>申请理由：</strong>
+                                            <p class="text-muted mb-0" th:text="${app.applicationMessage}">申请理由内容</p>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            申请时间：<span th:text="${#temporals.format(app.appliedAt, 'yyyy-MM-dd HH:mm')}">申请时间</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="mb-3">
+                                    <span th:class="'badge p-2 status-' + ${app.status.name().toLowerCase()}"
+                                          th:text="${app.status.description}">状态</span>
+                                </div>
+                                
+                                <!-- 待处理申请的操作按钮 -->
+                                <div th:if="${app.isPending()}" class="d-grid gap-2">
+                                    <button type="button" class="btn btn-success" 
+                                            data-bs-toggle="modal" 
+                                            th:data-bs-target="'#approveModal' + ${app.id}">
+                                        <i class="fas fa-check me-1"></i>同意申请
+                                    </button>
+                                    <button type="button" class="btn btn-danger" 
+                                            data-bs-toggle="modal" 
+                                            th:data-bs-target="'#rejectModal' + ${app.id}">
+                                        <i class="fas fa-times me-1"></i>拒绝申请
+                                    </button>
+                                </div>
+                                
+                                <!-- 已处理申请的信息 -->
+                                <div th:unless="${app.isPending()}">
+                                    <div th:if="${app.teacherReply}" class="text-muted small">
+                                        <strong>回复：</strong>
+                                        <p th:text="${app.teacherReply}">导师回复</p>
+                                    </div>
+                                    <small class="text-muted">
+                                        处理时间：<span th:text="${#temporals.format(app.processedAt, 'yyyy-MM-dd HH:mm')}">处理时间</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模态框 - 移到循环外部 -->
+                <div th:each="app : ${applications.content}">
+                    <!-- 同意申请模态框 -->
+                    <div class="modal fade" th:id="'approveModal' + ${app.id}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">同意申请</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form th:action="@{'/teacher/applications/' + ${app.id} + '/approve'}" method="post">
+                                    <div class="modal-body">
+                                        <p>您确定要同意 <strong th:text="${app.student.displayName}"></strong> 的申请吗？</p>
+                                        <div class="mb-3">
+                                            <label for="replyMessage" class="form-label">回复消息（可选）</label>
+                                            <textarea class="form-control" name="replyMessage" rows="3" 
+                                                      placeholder="欢迎您成为我的学生..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                        <button type="submit" class="btn btn-success">确认同意</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 拒绝申请模态框 -->
+                    <div class="modal fade" th:id="'rejectModal' + ${app.id}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">拒绝申请</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form th:action="@{'/teacher/applications/' + ${app.id} + '/reject'}" method="post">
+                                    <div class="modal-body">
+                                        <p>您确定要拒绝 <strong th:text="${app.student.displayName}"></strong> 的申请吗？</p>
+                                        <div class="mb-3">
+                                            <label for="replyMessage" class="form-label">拒绝理由（可选）</label>
+                                            <textarea class="form-control" name="replyMessage" rows="3" 
+                                                      placeholder="很抱歉，目前我的学生名额已满..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                        <button type="submit" class="btn btn-danger">确认拒绝</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分页 -->
+        <div th:if="${applications != null and applications.totalPages > 1}" class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <!-- 上一页 -->
+                    <li class="page-item" th:classappend="${applications.first} ? 'disabled'">
+                        <a class="page-link" th:href="@{/teacher/applications(page=${applications.number - 1})}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    
+                    <!-- 页码 -->
+                    <li th:each="i : ${#numbers.sequence(0, applications.totalPages - 1)}" 
+                        class="page-item" 
+                        th:classappend="${i == applications.number} ? 'active'">
+                        <a class="page-link" 
+                           th:href="@{/teacher/applications(page=${i})}" 
+                           th:text="${i + 1}">1</a>
+                    </li>
+                    
+                    <!-- 下一页 -->
+                    <li class="page-item" th:classappend="${applications.last} ? 'disabled'">
+                        <a class="page-link" th:href="@{/teacher/applications(page=${applications.number + 1})}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 成功/错误消息 -->
+    <div th:if="${successMessage}" class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong class="me-auto">成功</strong>
+            </div>
+            <div class="toast-body" th:text="${successMessage}"></div>
+        </div>
+    </div>
+
+    <div th:if="${errorMessage}" class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-danger text-white">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong class="me-auto">错误</strong>
+            </div>
+            <div class="toast-body" th:text="${errorMessage}"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

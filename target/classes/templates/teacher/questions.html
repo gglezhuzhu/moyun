@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生问题管理 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status-answered {
+            background: #d1edff;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status-closed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .student-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            display: inline-block;
+        }
+        .filter-tabs {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .btn-filter {
+            border-radius: 25px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-filter.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .priority-high {
+            border-left: 4px solid #e74c3c;
+        }
+        .priority-normal {
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/navbar :: navbar('teacher')}"></div>
+
+    <div class="container mt-5 pt-3">
+        <!-- 页面标题 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-primary mb-1">
+                    <i class="fas fa-comments me-2"></i>学生讨论管理
+                </h2>
+                <p class="text-muted mb-0">查看和管理学生向您提出的问题咨询</p>
+            </div>
+            <a th:href="@{/teacher/dashboard}" class="btn btn-outline-primary">
+                <i class="fas fa-tachometer-alt me-2"></i>返回工作台
+            </a>
+        </div>
+
+        <!-- 提示信息 -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+
+
+        <!-- 筛选选项 -->
+        <div class="filter-tabs">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="btn-group" role="group">
+                        <a th:href="@{/teacher/questions(filter='unanswered')}" 
+                           class="btn btn-filter"
+                           th:classappend="${filter == 'unanswered'} ? 'btn-warning active' : 'btn-outline-warning'">
+                            <i class="fas fa-question-circle me-2"></i>待回答
+                            <span class="badge bg-light text-dark ms-1" th:text="${unansweredCount}">0</span>
+                        </a>
+                        <a th:href="@{/teacher/questions(filter='answered')}" 
+                           class="btn btn-filter"
+                           th:classappend="${filter == 'answered'} ? 'btn-success active' : 'btn-outline-success'">
+                            <i class="fas fa-check-circle me-2"></i>已回答
+                            <span class="badge bg-light text-dark ms-1" th:text="${answeredCount}">0</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted">
+                        共 <span th:text="${questions != null ? questions.totalElements : 0}">0</span> 个讨论
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 问题列表 -->
+        <div th:if="${questions != null and questions.hasContent()}">
+            <div th:each="question : ${questions.content}" class="question-card"
+                 th:classappend="${!question.isAnswered} ? 'priority-high' : 'priority-normal'">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-2">
+                                        <a th:href="@{'/discussions/' + ${question.id}}" 
+                                           class="text-decoration-none text-dark fw-bold"
+                                           th:text="${question.title}">问题标题</a>
+                                        <span th:if="${!question.isAnswered}" class="badge bg-warning ms-2">
+                                            <i class="fas fa-exclamation me-1"></i>待回答
+                                        </span>
+                                    </h5>
+                                    <div class="student-info mb-2">
+                                        <i class="fas fa-user-graduate me-1"></i>
+                                        <span th:text="${question.user.displayName}">学生姓名</span>
+                                    </div>
+                                    <p class="text-muted mb-2" th:text="${#strings.abbreviate(question.content, 200)}">
+                                        问题内容摘要...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="mb-3">
+                                <span class="status-badge" 
+                                      th:classappend="${!question.isAnswered} ? 'status-pending' : 'status-answered'"
+                                      th:text="${!question.isAnswered} ? '待回答' : '已回答'">状态</span>
+                            </div>
+                            <div class="text-muted small">
+                                <div class="mb-1">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <span th:text="${#temporals.format(question.createdAt, 'yyyy-MM-dd HH:mm')}">提问时间</span>
+                                </div>
+                                <div>
+                                    <i class="fas fa-tag me-1"></i>
+                                    <span th:text="${question.type.displayName}">问题咨询</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 已有回答预览 -->
+                    <div th:if="${question.isAnswered and question.replies != null and !question.replies.empty}" 
+                         class="mt-3 pt-3 border-top">
+                        <div class="bg-light rounded p-3">
+                            <h6 class="text-success mb-2">
+                                <i class="fas fa-reply me-1"></i>已有回复
+                            </h6>
+                            <p class="mb-1" th:text="${#strings.abbreviate(question.replies[0].content, 150)}">回答内容预览...</p>
+                            <small class="text-muted">
+                                <span th:text="${#temporals.format(question.replies[0].createdAt, 'yyyy-MM-dd HH:mm')}">回答时间</span>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="mt-3 pt-3 border-top">
+                        <a th:href="@{'/discussions/' + ${question.id}}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>查看详情
+                        </a>
+                        
+                        <!-- 导师操作按钮 -->
+                        <form th:if="${!question.isAnswered}" 
+                              th:action="@{'/teacher/questions/' + ${question.id} + '/mark-answered'}" 
+                              method="post" class="d-inline ms-2">
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-check me-1"></i>标记已回答
+                            </button>
+                        </form>
+                        
+                        <form th:if="${question.isAnswered}" 
+                              th:action="@{'/teacher/questions/' + ${question.id} + '/unmark-answered'}" 
+                              method="post" class="d-inline ms-2">
+                            <button type="submit" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-undo me-1"></i>取消已回答
+                            </button>
+                        </form>
+                        
+                        <!-- 状态标识 -->
+                        <span th:if="${question.isAnswered}" class="badge bg-success ms-2">
+                            <i class="fas fa-check me-1"></i>已回答
+                        </span>
+                        <span th:if="${!question.isAnswered}" class="badge bg-warning ms-2">
+                            <i class="fas fa-clock me-1"></i>等待回答
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div th:if="${questions == null or !questions.hasContent()}" class="empty-state">
+            <i class="fas fa-comments"></i>
+            <h4 th:if="${filter == 'unanswered'}">暂无待回答讨论</h4>
+            <h4 th:if="${filter == 'answered'}">暂无已回答讨论</h4>
+            <h4 th:if="${filter != 'unanswered' and filter != 'answered'}">暂无讨论</h4>
+            <p class="mb-4" th:if="${filter == 'unanswered'}">目前没有学生向您提出问题咨询</p>
+            <p class="mb-4" th:if="${filter == 'answered'}">您还没有回答过任何问题咨询</p>
+            <p class="mb-4" th:if="${filter != 'unanswered' and filter != 'answered'}">没有找到相关讨论</p>
+        </div>
+
+        <!-- 分页导航 -->
+        <nav th:if="${questions != null and questions.totalPages > 1}">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" th:classappend="${questions.first} ? 'disabled'">
+                    <a class="page-link" 
+                       th:href="@{/teacher/questions(page=${questions.number - 1}, filter=${filter})}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                
+                <li th:each="pageNum : ${#numbers.sequence(0, questions.totalPages - 1)}" 
+                    class="page-item" 
+                    th:classappend="${pageNum == questions.number} ? 'active'">
+                    <a class="page-link" 
+                       th:href="@{/teacher/questions(page=${pageNum}, filter=${filter})}"
+                       th:text="${pageNum + 1}">1</a>
+                </li>
+                
+                <li class="page-item" th:classappend="${questions.last} ? 'disabled'">
+                    <a class="page-link" 
+                       th:href="@{/teacher/questions(page=${questions.number + 1}, filter=${filter})}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

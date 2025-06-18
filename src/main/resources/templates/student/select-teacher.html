@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - 墨韵读书'">申请导师 - 墨韵读书</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .teacher-container {
+            margin-top: 100px;
+        }
+        .teacher-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 2rem;
+        }
+        .teacher-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .teacher-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .teacher-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 1.5rem;
+        }
+        .teacher-stats {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .search-box {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .current-teacher {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .application-status {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status-approved {
+            background-color: #d1edff;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div th:replace="~{fragments/navbar :: navbar('student')}"></div>
+
+    <div class="container teacher-container">
+        <!-- 页面标题 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="fas fa-chalkboard-teacher me-2"></i>申请导师</h2>
+                <p class="text-muted">选择一位导师并发送申请，等待导师审核</p>
+            </div>
+        </div>
+
+        <!-- 当前导师信息 -->
+        <div th:if="${student.hasTeacher()}" class="current-teacher">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    <img th:src="${student.teacher.avatarUrl ?: '/images/default-avatar.png'}" 
+                         class="teacher-avatar" alt="导师头像">
+                </div>
+                <div class="col-md-8">
+                    <h5 class="mb-1">当前导师：<span th:text="${student.teacher.displayName}">导师姓名</span></h5>
+                    <p class="mb-1" th:text="${student.teacher.teacherInfo}">导师信息</p>
+                    <small><i class="fas fa-envelope me-1"></i><span th:text="${student.teacher.email}">邮箱</span></small>
+                </div>
+                <div class="col-md-2 text-end">
+                    <form th:action="@{/student/teachers/unselect}" method="post" 
+                          onsubmit="return confirm('确定要取消选择当前导师吗？')">
+                        <button type="submit" class="btn btn-outline-light">
+                            <i class="fas fa-times me-1"></i>取消选择
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="search-box">
+            <form th:action="@{/student/teachers}" method="get" class="row g-3">
+                <div class="col-md-10">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" name="keyword" 
+                               th:value="${keyword}" placeholder="搜索导师姓名...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>搜索
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 导师列表 -->
+        <div class="row">
+            <div th:if="${teachers != null and !teachers.isEmpty()}" th:each="teacher : ${teachers.content}" class="col-lg-6 col-xl-4">
+                <div class="teacher-card">
+                    <div class="teacher-header text-center">
+                        <h5 class="mb-1" th:text="${teacher.displayName}">导师姓名</h5>
+                        <p class="mb-0 opacity-75" th:text="${teacher.teacherInfo}">导师信息</p>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- 导师统计 -->
+                        <div class="teacher-stats">
+                            <div class="row">
+                                <div class="col-12 stat-item text-center">
+                                    <div class="stat-number" th:text="${teacher.currentStudentCount ?: 0}">0</div>
+                                    <small class="text-muted">当前学生数</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 联系信息 -->
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-envelope me-1"></i>
+                                <span th:text="${teacher.email}">邮箱</span>
+                            </small>
+                        </div>
+
+                        <!-- 申请状态显示 -->
+                        <div th:if="${teacher.applicationStatus != null}" 
+                             th:class="'application-status status-' + ${teacher.applicationStatus.status.name().toLowerCase()}">
+                            <div th:switch="${teacher.applicationStatus.status.name()}">
+                                <div th:case="'PENDING'">
+                                    <i class="fas fa-clock me-1"></i>申请审核中
+                                    <small class="d-block mt-1">
+                                        申请时间：<span th:text="${#temporals.format(teacher.applicationStatus.appliedAt, 'yyyy-MM-dd HH:mm')}"></span>
+                                    </small>
+                                </div>
+                                <div th:case="'APPROVED'">
+                                    <i class="fas fa-check-circle me-1"></i>申请已同意
+                                    <small class="d-block mt-1" th:if="${teacher.applicationStatus.teacherReply}">
+                                        导师回复：<span th:text="${teacher.applicationStatus.teacherReply}"></span>
+                                    </small>
+                                </div>
+                                <div th:case="'REJECTED'">
+                                    <i class="fas fa-times-circle me-1"></i>申请已拒绝
+                                    <small class="d-block mt-1" th:if="${teacher.applicationStatus.teacherReply}">
+                                        拒绝原因：<span th:text="${teacher.applicationStatus.teacherReply}"></span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="d-grid">
+                            <!-- 当前导师 -->
+                            <div th:if="${student.hasTeacher() and student.teacher.id == teacher.id}">
+                                <button class="btn btn-success" disabled>
+                                    <i class="fas fa-check me-1"></i>当前导师
+                                </button>
+                            </div>
+                            
+                            <!-- 已有导师，可更换 -->
+                            <div th:if="${student.hasTeacher() and student.teacher.id != teacher.id}">
+                                <form th:action="@{/student/teachers/change}" method="post" 
+                                      onsubmit="return confirm('确定要更换为这位导师吗？')">
+                                    <input type="hidden" name="teacherId" th:value="${teacher.id}">
+                                    <button type="submit" class="btn btn-warning w-100">
+                                        <i class="fas fa-exchange-alt me-1"></i>更换导师
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <!-- 无导师，可申请 -->
+                            <div th:unless="${student.hasTeacher()}">
+                                <!-- 未申请过 -->
+                                <div th:if="${teacher.applicationStatus == null}">
+                                    <button type="button" class="btn btn-primary w-100" 
+                                            data-bs-toggle="modal" 
+                                            th:data-bs-target="'#applyModal' + ${teacher.id}">
+                                        <i class="fas fa-paper-plane me-1"></i>申请导师
+                                    </button>
+                                </div>
+                                
+                                <!-- 申请待审核 -->
+                                <div th:if="${teacher.applicationStatus != null and teacher.applicationStatus.isPending()}">
+                                    <button class="btn btn-warning w-100" disabled>
+                                        <i class="fas fa-clock me-1"></i>申请审核中
+                                    </button>
+                                </div>
+                                
+                                <!-- 申请被拒绝，可重新申请 -->
+                                <div th:if="${teacher.applicationStatus != null and teacher.applicationStatus.isRejected()}">
+                                    <button type="button" class="btn btn-primary w-100" 
+                                            data-bs-toggle="modal" 
+                                            th:data-bs-target="'#applyModal' + ${teacher.id}">
+                                        <i class="fas fa-redo me-1"></i>重新申请
+                                    </button>
+                                </div>
+                                
+                                <!-- 申请已同意 -->
+                                <div th:if="${teacher.applicationStatus != null and teacher.applicationStatus.isApproved()}">
+                                    <button class="btn btn-success w-100" disabled>
+                                        <i class="fas fa-check me-1"></i>申请已同意
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 申请模态框 -->
+                <div class="modal fade" th:id="'applyModal' + ${teacher.id}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">申请导师</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form th:action="@{/student/teachers/apply}" method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" name="teacherId" th:value="${teacher.id}">
+                                    <p>您正在申请 <strong th:text="${teacher.displayName}"></strong> 作为您的导师。</p>
+                                    <div class="mb-3">
+                                        <label for="applicationMessage" class="form-label">申请理由（可选）</label>
+                                        <textarea class="form-control" name="applicationMessage" rows="3" 
+                                                  placeholder="请简要说明您选择这位导师的原因..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="submit" class="btn btn-primary">发送申请</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div th:if="${teachers == null or teachers.isEmpty()}" class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">没有找到导师</h4>
+            <p class="text-muted">
+                <span th:if="${keyword != null and !keyword.isEmpty()}">
+                    没有找到与 "<span th:text="${keyword}"></span>" 相关的导师
+                </span>
+                <span th:unless="${keyword != null and !keyword.isEmpty()}">
+                    暂时没有可选择的导师
+                </span>
+            </p>
+            <a href="/student/teachers" class="btn btn-primary" th:if="${keyword != null and !keyword.isEmpty()}">
+                <i class="fas fa-list me-1"></i>查看所有导师
+            </a>
+        </div>
+
+        <!-- 分页 -->
+        <div th:if="${teachers != null and teachers.totalPages > 1}" class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <!-- 上一页 -->
+                    <li class="page-item" th:classappend="${teachers.first} ? 'disabled'">
+                        <a class="page-link" 
+                           th:href="@{/student/teachers(page=${teachers.number - 1}, keyword=${keyword})}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    
+                    <!-- 页码 -->
+                    <li th:each="i : ${#numbers.sequence(0, teachers.totalPages - 1)}" 
+                        class="page-item" 
+                        th:classappend="${i == teachers.number} ? 'active'">
+                        <a class="page-link" 
+                           th:href="@{/student/teachers(page=${i}, keyword=${keyword})}" 
+                           th:text="${i + 1}">1</a>
+                    </li>
+                    
+                    <!-- 下一页 -->
+                    <li class="page-item" th:classappend="${teachers.last} ? 'disabled'">
+                        <a class="page-link" 
+                           th:href="@{/student/teachers(page=${teachers.number + 1}, keyword=${keyword})}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 成功/错误消息 -->
+    <div th:if="${successMessage}" class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong class="me-auto">成功</strong>
+            </div>
+            <div class="toast-body" th:text="${successMessage}"></div>
+        </div>
+    </div>
+
+    <div th:if="${errorMessage}" class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-danger text-white">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong class="me-auto">错误</strong>
+            </div>
+            <div class="toast-body" th:text="${errorMessage}"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 自动隐藏提示消息
+        setTimeout(function() {
+            const toasts = document.querySelectorAll('.toast');
+            toasts.forEach(toast => {
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.hide();
+            });
+        }, 3000);
+    </script>
+</body>
+</html> 
